@@ -15,4 +15,7 @@ router.get('/inbox', emailController.getInbox);
 // GET /api/emails/sent
 router.get('/sent', emailController.getSentbox);
 
+// PUT /api/emails/:id/read
+router.put('/:id/read', emailController.markAsRead);
+
 module.exports = router;

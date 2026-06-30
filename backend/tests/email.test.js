@@ -22,7 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/emails', emailRoutes);
 
 let sequelize;
-let senderToken;
+let senderToken, receiverToken;
 let senderEmail = 'sender_test@example.com';
 let receiverEmail = 'receiver_test@example.com';
 let nonExistentEmail = 'noone@example.com';
@@ -53,6 +53,12 @@ beforeAll(async () => {
   const jwtSecret = process.env.JWT_SECRET || 'mailbox_super_secret_token_key';
   senderToken = jwt.sign(
     { userId: 'sender_uuid_123', email: senderEmail },
+    jwtSecret,
+    { expiresIn: '1h' }
+  );
+
+  receiverToken = jwt.sign(
+    { userId: 'receiver_uuid_123', email: receiverEmail },
     jwtSecret,
     { expiresIn: '1h' }
   );
@@ -141,5 +147,37 @@ describe('Email Delivery API Endpoint Tests', () => {
     expect(res.body.count).toBeGreaterThanOrEqual(1);
     expect(res.body.emails[0].senderEmail).toBe(senderEmail);
     expect(res.body.emails[0].receiverEmail).toBe(receiverEmail);
+  });
+
+  // Test Case 6: Successfully Mark Email as Read
+  it('should successfully mark an email as read and return 200', async () => {
+    const email = await models.Email.findOne({ where: { receiverEmail: receiverEmail } });
+    expect(email).toBeDefined();
+    expect(email.isRead).toBe(false);
+
+    const res = await request(app)
+      .put(`/api/emails/${email.id}/read`)
+      .set('Authorization', `Bearer ${receiverToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.email.isRead).toBe(true);
+
+    const updatedEmail = await models.Email.findByPk(email.id);
+    expect(updatedEmail.isRead).toBe(true);
+  });
+
+  // Test Case 7: Mark Email as Read fails if not the receiver
+  it('should return 403 error when trying to mark someone else\'s email as read', async () => {
+    const email = await models.Email.findOne({ where: { receiverEmail: receiverEmail } });
+    expect(email).toBeDefined();
+
+    const res = await request(app)
+      .put(`/api/emails/${email.id}/read`)
+      .set('Authorization', `Bearer ${senderToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Access denied');
   });
 });

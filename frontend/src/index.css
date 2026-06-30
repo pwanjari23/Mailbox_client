@@ -142,3 +142,14 @@ body {
   border: none !important;
   font-size: 0.875rem !important;
 }
+
+/* Blue dot for unread messages */
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #3b82f6 !important;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 12px;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}

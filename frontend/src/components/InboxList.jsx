@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { ListGroup, Card, Alert, Spinner, Modal, Button, Badge } from 'react-bootstrap';
+import { mailActions } from '../store/mail-slice';
 
 const InboxList = () => {
-  const [emails, setEmails] = useState([]);
+  const dispatch = useDispatch();
+  
+  // Read emails from Redux Store
+  const emails = useSelector(state => state.mail.receivedEmails);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   
@@ -32,7 +37,8 @@ const InboxList = () => {
         throw new Error(data.message || 'Failed to retrieve emails.');
       }
 
-      setEmails(data.emails || []);
+      // Store in Redux (which also calculates the unread count in real-time)
+      dispatch(mailActions.setReceivedEmails(data.emails || []));
     } catch (err) {
       console.error('Inbox fetch error:', err);
       setErrorMsg(err.message);
@@ -45,9 +51,30 @@ const InboxList = () => {
     fetchEmails();
   }, []);
 
-  const handleRowClick = (email) => {
+  const handleRowClick = async (email) => {
     setSelectedEmail(email);
     setShowModal(true);
+
+    if (!email.isRead) {
+      // 1. Instantly mark as read in Redux store
+      dispatch(mailActions.markEmailAsRead(email.id));
+
+      // 2. Mark as read on backend persistence
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          await fetch(`${apiUrl}/emails/${email.id}/read`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error marking email as read in DB:', err);
+      }
+    }
   };
 
   const handleCloseModal = () => {
@@ -128,6 +155,11 @@ const InboxList = () => {
               >
                 <div className="d-flex flex-column me-3 mb-2 mb-sm-0 text-truncate" style={{ maxWidth: '80%' }}>
                   <div className="d-flex align-items-center mb-1">
+                    {/* Unread Blue Dot Indicator */}
+                    {!email.isRead && (
+                      <span className="unread-dot" data-testid="unread-dot"></span>
+                    )}
+                    
                     <span className="fw-semibold text-indigo me-2" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
                       {email.senderEmail}
                     </span>
@@ -153,7 +185,6 @@ const InboxList = () => {
           onHide={handleCloseModal} 
           centered 
           size="lg"
-          dialogClassName="email-modal"
           contentClassName="signup-card"
           style={{ backdropFilter: 'blur(4px)' }}
         >
@@ -183,7 +214,6 @@ const InboxList = () => {
                   </div>
                 </div>
                 
-                {/* Safe rendering of HTML rich text */}
                 <div 
                   className="email-body-content bg-dark-soft p-3 rounded"
                   style={{ 

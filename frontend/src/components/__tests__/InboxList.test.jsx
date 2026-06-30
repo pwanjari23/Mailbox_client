@@ -1,7 +1,17 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import mailReducer from '../../store/mail-slice';
 import InboxList from '../InboxList';
+
+// Helper to create a fresh test store for each test case
+const createTestStore = () => configureStore({
+  reducer: {
+    mail: mailReducer
+  }
+});
 
 describe('InboxList Component Unit Tests', () => {
   beforeEach(() => {
@@ -16,10 +26,14 @@ describe('InboxList Component Unit Tests', () => {
 
   // Test Case 1: Initial state shows loading spinner
   test('renders loading spinner initially while fetching messages', async () => {
-    // Return unresolved promise to capture loading state
     global.fetch.mockReturnValueOnce(new Promise(() => {}));
 
-    render(<InboxList />);
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
     
     expect(screen.getByText('Loading your messages...')).toBeInTheDocument();
   });
@@ -32,7 +46,12 @@ describe('InboxList Component Unit Tests', () => {
       json: async () => ({ success: true, emails: [] }),
     });
 
-    render(<InboxList />);
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Your inbox is clean!')).toBeInTheDocument();
@@ -69,7 +88,12 @@ describe('InboxList Component Unit Tests', () => {
       json: async () => ({ success: true, emails: mockEmails }),
     });
 
-    render(<InboxList />);
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('sender1@example.com')).toBeInTheDocument();
@@ -99,7 +123,19 @@ describe('InboxList Component Unit Tests', () => {
       json: async () => ({ success: true, emails: mockEmails }),
     });
 
-    render(<InboxList />);
+    // Mock fetch for PUT read endpoint
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true }),
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
 
     // Wait for row item to load
     await waitFor(() => {
@@ -129,7 +165,12 @@ describe('InboxList Component Unit Tests', () => {
       json: async () => ({ success: false, message: 'Server is currently down.' }),
     });
 
-    render(<InboxList />);
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Server is currently down.')).toBeInTheDocument();

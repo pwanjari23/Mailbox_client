@@ -110,3 +110,44 @@ exports.getSentbox = async (req, res) => {
     });
   }
 };
+
+// PUT /api/emails/:id/read
+exports.markAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user.email;
+
+    const email = await models.Email.findByPk(id);
+    if (!email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Email not found.'
+      });
+    }
+
+    if (email.receiverEmail !== userEmail) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You are not the recipient of this email.'
+      });
+    }
+
+    email.isRead = true;
+    await email.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email marked as read.',
+      email: {
+        id: email.id,
+        isRead: email.isRead
+      }
+    });
+  } catch (error) {
+    console.error('Error marking email as read:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update email read status.'
+    });
+  }
+};

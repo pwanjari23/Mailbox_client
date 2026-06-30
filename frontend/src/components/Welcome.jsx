@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, ListGroup, Button } from 'react-bootstrap';
+import { useSelector } from 'react-redux';
+import { Container, Row, Col, ListGroup, Button, Badge } from 'react-bootstrap';
 import ComposeMail from './ComposeMail';
 import InboxList from './InboxList';
 import SentList from './SentList';
 
 const Welcome = ({ onLogout }) => {
   const userEmail = localStorage.getItem('userEmail') || 'User';
+  
+  // Read unreadCount from Redux Store
+  const unreadCount = useSelector(state => state.mail.unreadCount);
   
   // Dashboard internal views: 'inbox' (default!) | 'compose' | 'sent'
   const [activeTab, setActiveTab] = useState('inbox');
@@ -46,7 +50,17 @@ const Welcome = ({ onLogout }) => {
               className="d-flex align-items-center py-2.5 px-3"
             >
               <i className="bi bi-inbox-fill me-3" style={{ fontSize: '1.2rem' }}></i>
-              Inbox
+              <span className="me-2">Inbox</span>
+              {unreadCount > 0 && (
+                <Badge 
+                  bg="primary" 
+                  pill 
+                  className="ms-auto" 
+                  style={{ fontSize: '0.75rem', padding: '0.25em 0.6em', background: '#3b82f6 !important' }}
+                >
+                  {unreadCount}
+                </Badge>
+              )}
             </ListGroup.Item>
 
             {/* Compose Tab */}
