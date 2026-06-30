@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, ListGroup, Card, Button } from 'react-bootstrap';
+import { Container, Row, Col, ListGroup, Button } from 'react-bootstrap';
 import ComposeMail from './ComposeMail';
+import InboxList from './InboxList';
+import SentList from './SentList';
 
 const Welcome = ({ onLogout }) => {
   const userEmail = localStorage.getItem('userEmail') || 'User';
   
-  // Dashboard internal views: 'dashboard' | 'compose'
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Dashboard internal views: 'inbox' (default!) | 'compose' | 'sent'
+  const [activeTab, setActiveTab] = useState('inbox');
 
   const handleLogoutClick = () => {
     localStorage.removeItem('token');
@@ -26,25 +28,28 @@ const Welcome = ({ onLogout }) => {
             <span className="fs-5 fw-bold signup-title">MailBox</span>
           </div>
 
+          {/* Sidebar Tabs */}
           <ListGroup variant="flush" className="flex-grow-1" style={{ background: 'transparent' }}>
+            {/* Inbox Tab */}
             <ListGroup.Item 
               action 
-              active={activeTab === 'dashboard'}
-              onClick={() => setActiveTab('dashboard')}
+              active={activeTab === 'inbox'}
+              onClick={() => setActiveTab('inbox')}
               style={{
-                background: activeTab === 'dashboard' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                color: activeTab === 'dashboard' ? '#a5b4fc' : '#94a3b8',
+                background: activeTab === 'inbox' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                color: activeTab === 'inbox' ? '#a5b4fc' : '#94a3b8',
                 border: 'none',
                 borderRadius: '0.5rem',
                 marginBottom: '0.5rem',
-                fontWeight: activeTab === 'dashboard' ? '600' : '400',
+                fontWeight: activeTab === 'inbox' ? '600' : '400',
               }}
               className="d-flex align-items-center py-2.5 px-3"
             >
-              <i className="bi bi-speedometer2 me-3" style={{ fontSize: '1.2rem' }}></i>
-              Dashboard
+              <i className="bi bi-inbox-fill me-3" style={{ fontSize: '1.2rem' }}></i>
+              Inbox
             </ListGroup.Item>
 
+            {/* Compose Tab */}
             <ListGroup.Item 
               action 
               active={activeTab === 'compose'}
@@ -61,6 +66,25 @@ const Welcome = ({ onLogout }) => {
             >
               <i className="bi bi-pencil-square me-3" style={{ fontSize: '1.2rem' }}></i>
               Compose
+            </ListGroup.Item>
+
+            {/* Sent Tab */}
+            <ListGroup.Item 
+              action 
+              active={activeTab === 'sent'}
+              onClick={() => setActiveTab('sent')}
+              style={{
+                background: activeTab === 'sent' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                color: activeTab === 'sent' ? '#a5b4fc' : '#94a3b8',
+                border: 'none',
+                borderRadius: '0.5rem',
+                marginBottom: '0.5rem',
+                fontWeight: activeTab === 'sent' ? '600' : '400',
+              }}
+              className="d-flex align-items-center py-2.5 px-3"
+            >
+              <i className="bi bi-send-fill me-3" style={{ fontSize: '1.2rem' }}></i>
+              Sent Mail
             </ListGroup.Item>
           </ListGroup>
 
@@ -89,48 +113,20 @@ const Welcome = ({ onLogout }) => {
         </Col>
 
         {/* Right Content Area */}
-        <Col xs={12} md={9} lg={10} className="d-flex align-items-center justify-content-center p-4 p-md-5" style={{ background: '#090d16' }}>
-          {activeTab === 'dashboard' && (
-            <Card className="signup-card w-100 text-center" style={{ maxWidth: '500px' }}>
-              <Card.Body className="p-0 py-4">
-                <div className="mb-4 text-center">
-                  <div 
-                    className="d-inline-flex align-items-center justify-content-center rounded-circle" 
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      border: '2px dashed rgba(99, 102, 241, 0.3)'
-                    }}
-                  >
-                    <i className="bi bi-envelope-paper-fill" style={{ fontSize: '2.5rem', color: '#818cf8' }}></i>
-                  </div>
-                </div>
+        <Col xs={12} md={9} lg={10} className="d-flex align-items-start justify-content-center p-4 p-md-5 overflow-auto" style={{ background: '#090d16', maxHeight: '100vh' }}>
+          <div className="w-100 d-flex justify-content-center pt-2">
+            {activeTab === 'inbox' && (
+              <InboxList />
+            )}
 
-                <h1 className="signup-title mb-3" style={{ fontSize: '2.25rem' }}>
-                  Welcome to your mail box
-                </h1>
-                
-                <p className="signup-subtitle mb-4 px-3" style={{ fontSize: '1rem', color: '#cbd5e1' }}>
-                  This is your personal secure mailbox dashboard. Select an option from the sidebar to compose, read, or manage your emails.
-                </p>
+            {activeTab === 'compose' && (
+              <ComposeMail />
+            )}
 
-                <Button 
-                  variant="primary" 
-                  onClick={() => setActiveTab('compose')}
-                  className="btn-primary-custom py-2.5 px-4"
-                  style={{ width: 'auto', borderRadius: '0.75rem' }}
-                >
-                  <i className="bi bi-pencil-square me-2"></i>
-                  Compose Your First Email
-                </Button>
-              </Card.Body>
-            </Card>
-          )}
-
-          {activeTab === 'compose' && (
-            <ComposeMail />
-          )}
+            {activeTab === 'sent' && (
+              <SentList />
+            )}
+          </div>
         </Col>
       </Row>
     </Container>
