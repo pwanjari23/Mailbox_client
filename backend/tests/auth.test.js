@@ -101,4 +101,46 @@ describe('Authentication API Endpoint Tests', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.message).toContain('do not match');
   });
+
+  // Test Case 5: Successful Login
+  it('should successfully login and return a token with status 200', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: testEmail,
+        password: testPassword
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.token).toBeDefined();
+    expect(res.body.message).toContain('Login successful');
+  });
+
+  // Test Case 6: Login with wrong password
+  it('should return 401 and fail to login with wrong password', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: testEmail,
+        password: 'WrongPassword999'
+      });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Invalid email or password');
+  });
+
+  // Test Case 7: Login fails with missing fields
+  it('should return 400 and fail to login if email is missing', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        password: testPassword
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('required');
+  });
 });
