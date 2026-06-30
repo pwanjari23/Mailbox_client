@@ -31,16 +31,20 @@ function App() {
   return (
     <>
       {view === 'login' && (
-        <Login 
-          onLoginSuccess={handleLoginSuccess} 
-          onNavigateToSignup={() => setView('signup')} 
-        />
+        <div className="auth-container">
+          <Login 
+            onLoginSuccess={handleLoginSuccess} 
+            onNavigateToSignup={() => setView('signup')} 
+          />
+        </div>
       )}
       
       {view === 'signup' && (
-        <Signup 
-          onNavigateToLogin={() => setView('login')} 
-        />
+        <div className="auth-container">
+          <Signup 
+            onNavigateToLogin={() => setView('login')} 
+          />
+        </div>
       )}
       
       {view === 'welcome' && (

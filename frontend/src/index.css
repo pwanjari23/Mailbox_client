@@ -22,7 +22,7 @@ body {
   overflow-x: hidden;
 }
 
-#root {
+.auth-container {
   display: flex;
   align-items: center;
   justify-content: center;

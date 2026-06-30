@@ -21,6 +21,9 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+const emailRoutes = require('./routes/emailRoutes');
+app.use('/api/emails', emailRoutes);
+
 // Health Check / Welcome Route
 app.get('/', (req, res) => {
   res.json({ message: 'MailBox-Client Backend API is running.' });

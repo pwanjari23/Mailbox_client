@@ -7,8 +7,10 @@ function initModels() {
   
   // Import model definitions
   const User = require('./User')(sequelize);
+  const Email = require('./Email')(sequelize);
   
   models.User = User;
+  models.Email = Email;
   models.sequelize = sequelize;
   
   return models;
