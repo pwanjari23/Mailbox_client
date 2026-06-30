@@ -151,3 +151,40 @@ exports.markAsRead = async (req, res) => {
     });
   }
 };
+
+// DELETE /api/emails/:id
+exports.deleteEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user.email;
+
+    const email = await models.Email.findByPk(id);
+    if (!email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Email not found.'
+      });
+    }
+
+    // Only the sender or receiver can delete the email record
+    if (email.senderEmail !== userEmail && email.receiverEmail !== userEmail) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You cannot delete this email.'
+      });
+    }
+
+    await email.destroy();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Error deleting email:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete email.'
+    });
+  }
+};

@@ -18,4 +18,7 @@ router.get('/sent', emailController.getSentbox);
 // PUT /api/emails/:id/read
 router.put('/:id/read', emailController.markAsRead);
 
+// DELETE /api/emails/:id
+router.delete('/:id', emailController.deleteEmail);
+
 module.exports = router;

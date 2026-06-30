@@ -180,4 +180,47 @@ describe('Email Delivery API Endpoint Tests', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.message).toContain('Access denied');
   });
+
+  // Test Case 8: Successfully Delete Email
+  it('should successfully delete an email and return 200', async () => {
+    const email = await models.Email.findOne({ where: { receiverEmail: receiverEmail } });
+    expect(email).toBeDefined();
+
+    const res = await request(app)
+      .delete(`/api/emails/${email.id}`)
+      .set('Authorization', `Bearer ${receiverToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const deletedEmail = await models.Email.findByPk(email.id);
+    expect(deletedEmail).toBeNull();
+  });
+
+  // Test Case 9: Delete Email fails if not sender or recipient
+  it('should return 403 error when an unauthorized user attempts to delete an email', async () => {
+    // Create an email between sender and receiver
+    const email = await models.Email.create({
+      senderEmail: senderEmail,
+      receiverEmail: receiverEmail,
+      subject: 'Secret to delete',
+      body: '<p>Secret</p>'
+    });
+
+    // Create an unauthorized user token
+    const jwtSecret = process.env.JWT_SECRET || 'mailbox_super_secret_token_key';
+    const unauthorizedToken = jwt.sign(
+      { userId: 'unauthorized_uuid', email: 'unauthorized@example.com' },
+      jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .delete(`/api/emails/${email.id}`)
+      .set('Authorization', `Bearer ${unauthorizedToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Access denied');
+  });
 });

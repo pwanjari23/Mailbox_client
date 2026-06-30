@@ -18,6 +18,11 @@ const mailSlice = createSlice({
         existingEmail.isRead = true;
         state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
+    },
+    deleteEmail(state, action) {
+      const emailId = action.payload;
+      state.receivedEmails = state.receivedEmails.filter(email => email.id !== emailId);
+      state.unreadCount = state.receivedEmails.filter(email => !email.isRead).length;
     }
   }
 });

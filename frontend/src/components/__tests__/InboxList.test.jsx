@@ -176,4 +176,62 @@ describe('InboxList Component Unit Tests', () => {
       expect(screen.getByText('Server is currently down.')).toBeInTheDocument();
     });
   });
+
+  // Test Case 6: Successfully Deletes Email when Delete Button is Clicked
+  test('removes email row from UI and dispatches DELETE API call on click delete button', async () => {
+    const mockEmails = [
+      {
+        id: 'email-12345',
+        senderEmail: 'delete_me@example.com',
+        receiverEmail: 'user@example.com',
+        subject: 'Spam Subject',
+        body: '<p>Buy cheap things</p>',
+        isRead: false,
+        createdAt: '2026-06-30T10:00:00.000Z'
+      }
+    ];
+
+    // Mock GET emails
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, emails: mockEmails }),
+    });
+
+    // Mock DELETE email
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true }),
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList />
+      </Provider>
+    );
+
+    // Wait for row item to render
+    await waitFor(() => {
+      expect(screen.getByText('delete_me@example.com')).toBeInTheDocument();
+    });
+
+    // Find and click delete button
+    const deleteBtn = screen.getByTestId('delete-btn-email-12345');
+    expect(deleteBtn).toBeInTheDocument();
+    
+    fireEvent.click(deleteBtn);
+
+    // Verify row vanishes from document
+    await waitFor(() => {
+      expect(screen.queryByText('delete_me@example.com')).not.toBeInTheDocument();
+    });
+
+    // Verify correct DELETE request was sent
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/emails/email-12345'),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+  });
 });

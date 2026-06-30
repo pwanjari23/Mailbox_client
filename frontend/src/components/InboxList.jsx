@@ -77,6 +77,37 @@ const InboxList = () => {
     }
   };
 
+  const handleDeleteClick = async (e, emailId) => {
+    e.stopPropagation(); // Stop row click from opening details modal
+    
+    // 1. Optimistically delete from Redux store for instant feedback
+    dispatch(mailActions.deleteEmail(emailId));
+
+    // 2. Call backend DELETE API
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/emails/${emailId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to delete email from database');
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting email:', err);
+      setErrorMsg(err.message);
+      // Refresh inbox list to sync back
+      fetchEmails();
+    }
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedEmail(null);
@@ -135,9 +166,9 @@ const InboxList = () => {
             {emails.map((email) => (
               <ListGroup.Item
                 key={email.id}
-                action
                 onClick={() => handleRowClick(email)}
                 style={{
+                  cursor: 'pointer',
                   background: 'rgba(15, 23, 42, 0.5)',
                   border: '1px solid #1e293b',
                   borderTop: 'none',
@@ -153,14 +184,14 @@ const InboxList = () => {
                   e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.5)';
                 }}
               >
-                <div className="d-flex flex-column me-3 mb-2 mb-sm-0 text-truncate" style={{ maxWidth: '80%' }}>
+                <div className="d-flex flex-column me-3 mb-2 mb-sm-0 text-truncate" style={{ maxWidth: '75%' }}>
                   <div className="d-flex align-items-center mb-1">
                     {/* Unread Blue Dot Indicator */}
                     {!email.isRead && (
                       <span className="unread-dot" data-testid="unread-dot"></span>
                     )}
                     
-                    <span className="fw-semibold text-indigo me-2" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
+                    <span className="fw-semibold text-indigo me-2 text-truncate" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
                       {email.senderEmail}
                     </span>
                     {!email.isRead && (
@@ -171,8 +202,22 @@ const InboxList = () => {
                     {email.subject}
                   </span>
                 </div>
-                <div className="text-muted" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                  {formatTime(email.createdAt)}
+                
+                {/* Right Side: Timestamp and Action Button */}
+                <div className="d-flex align-items-center ms-auto ms-sm-0">
+                  <div className="text-muted me-3" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    {formatTime(email.createdAt)}
+                  </div>
+                  <Button 
+                    variant="link" 
+                    className="p-1 text-danger delete-btn" 
+                    onClick={(e) => handleDeleteClick(e, email.id)}
+                    style={{ textDecoration: 'none', color: '#ef4444' }}
+                    title="Delete email"
+                    data-testid={`delete-btn-${email.id}`}
+                  >
+                    <i className="bi bi-trash3-fill" style={{ fontSize: '1.1rem' }}></i>
+                  </Button>
                 </div>
               </ListGroup.Item>
             ))}
