@@ -1,17 +1,53 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Container, Row, Col, ListGroup, Button, Badge } from 'react-bootstrap';
 import ComposeMail from './ComposeMail';
 import InboxList from './InboxList';
+import { mailActions } from '../store/mail-slice';
 
 const Welcome = ({ onLogout }) => {
   const userEmail = localStorage.getItem('userEmail') || 'User';
+  const dispatch = useDispatch();
   
   // Read unreadCount from Redux Store
   const unreadCount = useSelector(state => state.mail.unreadCount);
   
   // Dashboard internal views: 'inbox' (default!) | 'compose' | 'sent'
   const [activeTab, setActiveTab] = useState('inbox');
+
+  useEffect(() => {
+    const fetchInbox = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/emails/inbox`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          dispatch(mailActions.setReceivedEmails(data.emails || []));
+        }
+      } catch (err) {
+        console.error('Error polling inbox:', err);
+      }
+    };
+
+    // Initial fetch
+    fetchInbox();
+
+    // Set up polling interval every 2 seconds
+    const interval = setInterval(fetchInbox, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [dispatch]);
 
   const handleLogoutClick = () => {
     localStorage.removeItem('token');
