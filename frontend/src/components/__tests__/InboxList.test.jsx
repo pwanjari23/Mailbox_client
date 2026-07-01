@@ -234,4 +234,117 @@ describe('InboxList Component Unit Tests', () => {
       expect.objectContaining({ method: 'DELETE' })
     );
   });
+
+  // Test Case 7: Render empty state warning in sent mode
+  test('renders empty sentbox placeholder when no emails are returned in sent mode', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, emails: [] }),
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList mode="sent" />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('No sent messages')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Emails you compose and send will appear here.')).toBeInTheDocument();
+  });
+
+  // Test Case 8: Render email lists in sent mode
+  test('renders a list of sent emails returned by the API in sent mode', async () => {
+    const mockEmails = [
+      {
+        id: 'email-sent-1',
+        senderEmail: 'user@example.com',
+        receiverEmail: 'receiver1@example.com',
+        subject: 'Sent test email 1',
+        body: '<p>Testing sent body 1</p>',
+        isRead: true,
+        createdAt: '2026-06-30T10:00:00.000Z'
+      },
+      {
+        id: 'email-sent-2',
+        senderEmail: 'user@example.com',
+        receiverEmail: 'receiver2@example.com',
+        subject: 'Sent test email 2',
+        body: '<p>Testing sent body 2</p>',
+        isRead: true,
+        createdAt: '2026-06-30T09:00:00.000Z'
+      }
+    ];
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, emails: mockEmails }),
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList mode="sent" />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('receiver1@example.com')).toBeInTheDocument();
+      expect(screen.getByText('Sent test email 1')).toBeInTheDocument();
+      expect(screen.getByText('receiver2@example.com')).toBeInTheDocument();
+      expect(screen.getByText('Sent test email 2')).toBeInTheDocument();
+    });
+    
+    // Assert that we don't display unread blue dots in sentbox
+    expect(screen.queryByTestId('unread-dot')).not.toBeInTheDocument();
+  });
+
+  // Test Case 9: Detail Modal trigger on clicking email row item in sent mode
+  test('opens reading detail modal with correct To and From fields when clicking a sent email item in list', async () => {
+    const mockEmails = [
+      {
+        id: 'email-sent-abc',
+        senderEmail: 'user@example.com',
+        receiverEmail: 'friend@example.com',
+        subject: 'Secret Sent Subject',
+        body: '<h3>Top Secret Sent Content</h3>',
+        isRead: true,
+        createdAt: '2026-06-30T10:00:00.000Z'
+      }
+    ];
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, emails: mockEmails }),
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <InboxList mode="sent" />
+      </Provider>
+    );
+
+    // Wait for row item to load
+    await waitFor(() => {
+      expect(screen.getByText('friend@example.com')).toBeInTheDocument();
+    });
+
+    // Click list item
+    const rowItem = screen.getByText('friend@example.com');
+    fireEvent.click(rowItem);
+
+    // Verify modal content is rendered
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Top Secret Sent Content')).toBeInTheDocument();
+    expect(screen.getAllByText('friend@example.com')[0]).toBeInTheDocument();
+    expect(screen.getByText('user@example.com (You)')).toBeInTheDocument();
+  });
 });

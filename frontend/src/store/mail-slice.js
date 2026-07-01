@@ -4,12 +4,16 @@ const mailSlice = createSlice({
   name: 'mail',
   initialState: {
     receivedEmails: [],
+    sentEmails: [],
     unreadCount: 0
   },
   reducers: {
     setReceivedEmails(state, action) {
       state.receivedEmails = action.payload || [];
       state.unreadCount = state.receivedEmails.filter(email => !email.isRead).length;
+    },
+    setSentEmails(state, action) {
+      state.sentEmails = action.payload || [];
     },
     markEmailAsRead(state, action) {
       const emailId = action.payload;
@@ -23,6 +27,7 @@ const mailSlice = createSlice({
       const emailId = action.payload;
       state.receivedEmails = state.receivedEmails.filter(email => email.id !== emailId);
       state.unreadCount = state.receivedEmails.filter(email => !email.isRead).length;
+      state.sentEmails = state.sentEmails.filter(email => email.id !== emailId);
     }
   }
 });

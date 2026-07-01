@@ -3,11 +3,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { ListGroup, Card, Alert, Spinner, Modal, Button, Badge } from 'react-bootstrap';
 import { mailActions } from '../store/mail-slice';
 
-const InboxList = () => {
+const InboxList = ({ mode = 'inbox' }) => {
   const dispatch = useDispatch();
   
   // Read emails from Redux Store
-  const emails = useSelector(state => state.mail.receivedEmails);
+  const emails = useSelector(state => mode === 'sent' ? state.mail.sentEmails : state.mail.receivedEmails);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   
@@ -25,7 +25,8 @@ const InboxList = () => {
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${apiUrl}/emails/inbox`, {
+      const endpoint = mode === 'sent' ? 'sent' : 'inbox';
+      const response = await fetch(`${apiUrl}/emails/${endpoint}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -34,11 +35,15 @@ const InboxList = () => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to retrieve emails.');
+        throw new Error(data.message || `Failed to retrieve ${mode} emails.`);
       }
 
       // Store in Redux (which also calculates the unread count in real-time)
-      dispatch(mailActions.setReceivedEmails(data.emails || []));
+      if (mode === 'sent') {
+        dispatch(mailActions.setSentEmails(data.emails || []));
+      } else {
+        dispatch(mailActions.setReceivedEmails(data.emails || []));
+      }
     } catch (err) {
       console.error('Inbox fetch error:', err);
       setErrorMsg(err.message);
@@ -49,13 +54,13 @@ const InboxList = () => {
 
   useEffect(() => {
     fetchEmails();
-  }, []);
+  }, [mode]);
 
   const handleRowClick = async (email) => {
     setSelectedEmail(email);
     setShowModal(true);
 
-    if (!email.isRead) {
+    if (mode === 'inbox' && !email.isRead) {
       // 1. Instantly mark as read in Redux store
       dispatch(mailActions.markEmailAsRead(email.id));
 
@@ -123,8 +128,8 @@ const InboxList = () => {
       <Card.Body className="p-2 py-3">
         <div className="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-secondary">
           <div className="d-flex align-items-center">
-            <i className="bi bi-inbox-fill me-2 text-indigo" style={{ fontSize: '1.5rem', color: '#818cf8' }}></i>
-            <h2 className="signup-title mb-0" style={{ fontSize: '1.5rem' }}>Inbox</h2>
+            <i className={`bi ${mode === 'sent' ? 'bi-send-fill' : 'bi-inbox-fill'} me-2 text-indigo`} style={{ fontSize: '1.5rem', color: '#818cf8' }}></i>
+            <h2 className="signup-title mb-0" style={{ fontSize: '1.5rem' }}>{mode === 'sent' ? 'Sent Messages' : 'Inbox'}</h2>
           </div>
           <Button 
             variant="outline-secondary" 
@@ -148,7 +153,7 @@ const InboxList = () => {
         {loading ? (
           <div className="text-center py-5">
             <Spinner animation="border" variant="indigo" style={{ color: '#818cf8' }} className="mb-2" />
-            <p className="signup-subtitle">Loading your messages...</p>
+            <p className="signup-subtitle">{mode === 'sent' ? 'Loading sent messages...' : 'Loading your messages...'}</p>
           </div>
         ) : emails.length === 0 ? (
           <div className="text-center py-5 px-3">
@@ -156,10 +161,12 @@ const InboxList = () => {
               className="d-inline-flex align-items-center justify-content-center bg-dark rounded-circle mb-3" 
               style={{ width: '70px', height: '70px', background: 'rgba(255, 255, 255, 0.03)' }}
             >
-              <i className="bi bi-mailbox2" style={{ fontSize: '2rem', color: '#64748b' }}></i>
+              <i className={`bi ${mode === 'sent' ? 'bi-send' : 'bi-mailbox2'}`} style={{ fontSize: '2rem', color: '#64748b' }}></i>
             </div>
-            <h4>Your inbox is clean!</h4>
-            <p className="signup-subtitle mb-0">No new emails have been received yet.</p>
+            <h4>{mode === 'sent' ? 'No sent messages' : 'Your inbox is clean!'}</h4>
+            <p className="signup-subtitle mb-0">
+              {mode === 'sent' ? 'Emails you compose and send will appear here.' : 'No new emails have been received yet.'}
+            </p>
           </div>
         ) : (
           <ListGroup className="inbox-list-group" variant="flush" style={{ borderRadius: '0.75rem', overflow: 'hidden' }}>
@@ -187,15 +194,26 @@ const InboxList = () => {
                 <div className="d-flex flex-column me-3 mb-2 mb-sm-0 text-truncate" style={{ maxWidth: '75%' }}>
                   <div className="d-flex align-items-center mb-1">
                     {/* Unread Blue Dot Indicator */}
-                    {!email.isRead && (
+                    {mode === 'inbox' && !email.isRead && (
                       <span className="unread-dot" data-testid="unread-dot"></span>
                     )}
                     
-                    <span className="fw-semibold text-indigo me-2 text-truncate" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
-                      {email.senderEmail}
-                    </span>
-                    {!email.isRead && (
-                      <Badge bg="primary" style={{ fontSize: '0.65rem', borderRadius: '1rem', padding: '0.25em 0.5em' }}>New</Badge>
+                    {mode === 'sent' ? (
+                      <>
+                        <span className="fw-semibold text-muted me-2" style={{ fontSize: '0.85rem' }}>To:</span>
+                        <span className="fw-semibold text-indigo text-truncate" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
+                          {email.receiverEmail}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="fw-semibold text-indigo me-2 text-truncate" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
+                          {email.senderEmail}
+                        </span>
+                        {!email.isRead && (
+                          <Badge bg="primary" style={{ fontSize: '0.65rem', borderRadius: '1rem', padding: '0.25em 0.5em' }}>New</Badge>
+                        )}
+                      </>
                     )}
                   </div>
                   <span className="text-light text-truncate" style={{ fontSize: '0.9rem' }}>
@@ -213,7 +231,7 @@ const InboxList = () => {
                     className="p-1 text-danger delete-btn" 
                     onClick={(e) => handleDeleteClick(e, email.id)}
                     style={{ textDecoration: 'none', color: '#ef4444' }}
-                    title="Delete email"
+                    title={mode === 'sent' ? 'Delete sent email' : 'Delete email'}
                     data-testid={`delete-btn-${email.id}`}
                   >
                     <i className="bi bi-trash3-fill" style={{ fontSize: '1.1rem' }}></i>
@@ -244,9 +262,9 @@ const InboxList = () => {
                 <div className="mb-4 pb-3 border-bottom border-secondary" style={{ fontSize: '0.9rem' }}>
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                      <strong style={{ color: '#cbd5e1' }}>From:</strong>{' '}
+                      <strong style={{ color: '#cbd5e1' }}>{mode === 'sent' ? 'To:' : 'From:'}</strong>{' '}
                       <span className="text-indigo" style={{ color: '#818cf8', fontWeight: '500' }}>
-                        {selectedEmail.senderEmail}
+                        {mode === 'sent' ? selectedEmail.receiverEmail : selectedEmail.senderEmail}
                       </span>
                     </div>
                     <span className="text-muted" style={{ fontSize: '0.8rem' }}>
@@ -254,8 +272,10 @@ const InboxList = () => {
                     </span>
                   </div>
                   <div>
-                    <strong style={{ color: '#cbd5e1' }}>To:</strong>{' '}
-                    <span style={{ color: '#94a3b8' }}>{selectedEmail.receiverEmail}</span>
+                    <strong style={{ color: '#cbd5e1' }}>{mode === 'sent' ? 'From:' : 'To:'}</strong>{' '}
+                    <span style={{ color: '#94a3b8' }}>
+                      {mode === 'sent' ? `${selectedEmail.senderEmail} (You)` : selectedEmail.receiverEmail}
+                    </span>
                   </div>
                 </div>
                 

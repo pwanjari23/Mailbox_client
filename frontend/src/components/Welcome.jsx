@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { Container, Row, Col, ListGroup, Button, Badge } from 'react-bootstrap';
 import ComposeMail from './ComposeMail';
 import InboxList from './InboxList';
-import SentList from './SentList';
 
 const Welcome = ({ onLogout }) => {
   const userEmail = localStorage.getItem('userEmail') || 'User';
@@ -138,7 +137,7 @@ const Welcome = ({ onLogout }) => {
             )}
 
             {activeTab === 'sent' && (
-              <SentList />
+              <InboxList mode="sent" />
             )}
           </div>
         </Col>
