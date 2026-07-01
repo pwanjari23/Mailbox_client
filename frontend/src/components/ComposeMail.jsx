@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import useHttp from '../hooks/use-http';
 
 const ComposeMail = () => {
   const [toEmail, setToEmail] = useState('');
@@ -9,7 +10,7 @@ const ComposeMail = () => {
   const [body, setBody] = useState('');
   
   // API state
-  const [loading, setLoading] = useState(false);
+  const { isLoading: loading, sendRequest } = useHttp();
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [validated, setValidated] = useState(false);
@@ -46,8 +47,6 @@ const ComposeMail = () => {
       return;
     }
 
-    setLoading(true);
-
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -56,24 +55,19 @@ const ComposeMail = () => {
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       
-      const response = await fetch(`${apiUrl}/emails/send`, {
+      await sendRequest({
+        url: `${apiUrl}/emails/send`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
+        body: {
           receiverEmail: toEmail,
           subject: subject.trim(),
           body: body
-        })
+        }
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to send email.');
-      }
 
       setSuccessMsg('Email successfully sent!');
       
@@ -85,8 +79,6 @@ const ComposeMail = () => {
     } catch (err) {
       console.error('Send mail error:', err);
       setErrorMsg(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 

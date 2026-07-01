@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Button, Card, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import useHttp from '../hooks/use-http';
 
 const Login = ({ onLoginSuccess, onNavigateToSignup }) => {
   // Form state
@@ -11,7 +12,7 @@ const Login = ({ onLoginSuccess, onNavigateToSignup }) => {
   const [validated, setValidated] = useState(false);
   
   // API State
-  const [loading, setLoading] = useState(false);
+  const { isLoading: loading, sendRequest } = useHttp();
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Client-side validations (Mandatory fields check)
@@ -27,27 +28,20 @@ const Login = ({ onLoginSuccess, onNavigateToSignup }) => {
       return;
     }
 
-    setLoading(true);
-
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const data = await sendRequest({
+        url: `${apiUrl}/auth/login`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
+        body: {
           email,
           password,
-        }),
+        },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed. Please verify your credentials.');
-      }
 
       // Store the token (from NodeJS backend)
       localStorage.setItem('token', data.token);
@@ -60,8 +54,6 @@ const Login = ({ onLoginSuccess, onNavigateToSignup }) => {
     } catch (err) {
       console.error('Login error:', err);
       setErrorMsg(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 

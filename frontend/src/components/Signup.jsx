@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Button, Card, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import useHttp from '../hooks/use-http';
 
 const Signup = ({ onNavigateToLogin }) => {
   // Form state
@@ -13,7 +14,7 @@ const Signup = ({ onNavigateToLogin }) => {
   const [validated, setValidated] = useState(false);
   
   // API State
-  const [loading, setLoading] = useState(false);
+  const { isLoading: loading, sendRequest } = useHttp();
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -43,28 +44,21 @@ const Signup = ({ onNavigateToLogin }) => {
       return;
     }
 
-    setLoading(true);
-
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       
-      const response = await fetch(`${apiUrl}/auth/signup`, {
+      const data = await sendRequest({
+        url: `${apiUrl}/auth/signup`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
+        body: {
           email,
           password,
           confirmPassword
-        }),
+        },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed. Please try again.');
-      }
 
       // Success
       console.log('User has successfully signed up');
@@ -78,8 +72,6 @@ const Signup = ({ onNavigateToLogin }) => {
     } catch (err) {
       console.error('Signup error:', err);
       setErrorMsg(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 

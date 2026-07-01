@@ -4,10 +4,12 @@ import { Container, Row, Col, ListGroup, Button, Badge } from 'react-bootstrap';
 import ComposeMail from './ComposeMail';
 import InboxList from './InboxList';
 import { mailActions } from '../store/mail-slice';
+import useHttp from '../hooks/use-http';
 
 const Welcome = ({ onLogout }) => {
   const userEmail = localStorage.getItem('userEmail') || 'User';
   const dispatch = useDispatch();
+  const { sendRequest } = useHttp();
   
   // Read unreadCount from Redux Store
   const unreadCount = useSelector(state => state.mail.unreadCount);
@@ -22,17 +24,15 @@ const Welcome = ({ onLogout }) => {
         if (!token) return;
 
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const response = await fetch(`${apiUrl}/emails/inbox`, {
+        const data = await sendRequest({
+          url: `${apiUrl}/emails/inbox`,
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        const data = await response.json();
-        if (response.ok) {
-          dispatch(mailActions.setReceivedEmails(data.emails || []));
-        }
+        dispatch(mailActions.setReceivedEmails(data.emails || []));
       } catch (err) {
         console.error('Error polling inbox:', err);
       }
@@ -47,7 +47,7 @@ const Welcome = ({ onLogout }) => {
     return () => {
       clearInterval(interval);
     };
-  }, [dispatch]);
+  }, [dispatch, sendRequest]);
 
   const handleLogoutClick = () => {
     localStorage.removeItem('token');

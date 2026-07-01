@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ListGroup, Card, Alert, Spinner, Modal, Button, Badge } from 'react-bootstrap';
 import { mailActions } from '../store/mail-slice';
+import useHttp from '../hooks/use-http';
 
 const InboxList = ({ mode = 'inbox' }) => {
   const dispatch = useDispatch();
   
   // Read emails from Redux Store
   const emails = useSelector(state => mode === 'sent' ? state.mail.sentEmails : state.mail.receivedEmails);
+  const { sendRequest: fetchRequest } = useHttp();
+  const { sendRequest: updateRequest } = useHttp();
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   
@@ -26,17 +29,13 @@ const InboxList = ({ mode = 'inbox' }) => {
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const endpoint = mode === 'sent' ? 'sent' : 'inbox';
-      const response = await fetch(`${apiUrl}/emails/${endpoint}`, {
+      const data = await fetchRequest({
+        url: `${apiUrl}/emails/${endpoint}`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to retrieve ${mode} emails.`);
-      }
 
       // Store in Redux (which also calculates the unread count in real-time)
       if (mode === 'sent') {
@@ -69,7 +68,8 @@ const InboxList = ({ mode = 'inbox' }) => {
         const token = localStorage.getItem('token');
         if (token) {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-          await fetch(`${apiUrl}/emails/${email.id}/read`, {
+          await updateRequest({
+            url: `${apiUrl}/emails/${email.id}/read`,
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -93,17 +93,13 @@ const InboxList = ({ mode = 'inbox' }) => {
       const token = localStorage.getItem('token');
       if (token) {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const response = await fetch(`${apiUrl}/emails/${emailId}`, {
+        await updateRequest({
+          url: `${apiUrl}/emails/${emailId}`,
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to delete email from database');
-        }
       }
     } catch (err) {
       console.error('Error deleting email:', err);
